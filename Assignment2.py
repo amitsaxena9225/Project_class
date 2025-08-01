@@ -1,7 +1,7 @@
 """
 Restaurant Meal Calculator
-Author: [Your Name]
-Date: [Current Date]
+Author: Amit Saxena
+Date: 01-Aug-2025
 Description: This program calculates the total amount of a meal purchased at a restaurant,
 including 18% tip and 7% sales tax.
 """
