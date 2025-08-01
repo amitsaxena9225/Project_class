@@ -1,7 +1,7 @@
 """
 24-Hour Clock Alarm Calculator
-Author: [Your Name]
-Date: [Current Date]
+Author: Amit Saxena
+Date: 01-Aug-2025
 Description: This program calculates what time an alarm will go off on a 24-hour clock.
 It asks the user for the current time and hours to wait, then outputs the alarm time.
 """
