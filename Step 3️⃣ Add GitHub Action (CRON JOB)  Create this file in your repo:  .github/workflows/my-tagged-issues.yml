@@ -2,7 +2,7 @@ name: My Tagged Issues Summary
 
 on:
   schedule:
-    - cron: "0 10 * * *"   # Daily at 10 AM UTC
+    - cron: "* * * * *"   # Daily at 10 AM UTC
   workflow_dispatch:
 
 jobs:
