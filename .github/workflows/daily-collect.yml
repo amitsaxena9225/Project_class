@@ -2,7 +2,7 @@ name: Daily Approval Summary (Today)
 
 on:
   schedule:
-    - cron: "30 3 * * *"   # 9:00 AM IST (03:30 UTC)
+    - cron: "30 3 * * *"   # 9:00 AM IST
   workflow_dispatch:
 
 permissions:
@@ -19,12 +19,12 @@ jobs:
           script: |
             const username = context.actor;
 
-            // Start of TODAY in UTC (00:00 UTC)
+            // Start of TODAY in UTC
             const todayUTC = new Date();
             todayUTC.setUTCHours(0, 0, 0, 0);
             const since = todayUTC.toISOString();
 
-            const result = await github.search.issuesAndPullRequests({
+            const result = await github.rest.search.issuesAndPullRequests({
               q: `mentions:${username} is:open created:>=${since}`,
               per_page: 100
             });
@@ -45,7 +45,7 @@ jobs:
               body += `• #${i.number} – ${i.title}\n`;
             }
 
-            await github.issues.create({
+            await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Daily Approval Summary – ${todayStr}`,
