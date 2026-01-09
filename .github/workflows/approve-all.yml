@@ -1,0 +1,38 @@
+name: Approve All Issues
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  approve:
+    if: contains(github.event.comment.body, 'APPROVE-ALL')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Approve all listed issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commenter = context.payload.comment.user.login;
+            const allowedUser = 'amitsaxena9225';
+
+            if (commenter !== allowedUser) {
+              console.log("Unauthorized user");
+              return;
+            }
+
+            const summaryBody = context.payload.issue.body;
+            const issueNumbers = [...summaryBody.matchAll(/#(\d+)/g)].map(m => m[1]);
+
+            for (const number of issueNumbers) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: number,
+                body: 'Approved ✅'
+              });
+            }
