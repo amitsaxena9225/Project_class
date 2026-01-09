@@ -19,7 +19,7 @@ jobs:
         with:
           script: |
             const today = new Date().toISOString().split('T')[0];
-            const username = 'YOUR_GITHUB_USERNAME';
+            const username = 'amitsaxena9225';
 
             const query = `is:issue is:open mentions:${username} created:${today}`;
             const result = await github.rest.search.issuesAndPullRequests({
