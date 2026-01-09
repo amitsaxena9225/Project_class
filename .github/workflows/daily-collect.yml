@@ -1,8 +1,8 @@
-# name: Daily Approval Summary
+name: Daily Collect Tagged Issues
 
 on:
   schedule:
-    - cron: "* * * * *"   # 9:00 AM IST (03:30 UTC)
+    - cron: "* * * * *"   # 8:30 AM IST
   workflow_dispatch:
 
 permissions:
@@ -12,38 +12,37 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Create daily approval summary
+      - name: Collect today's tagged issues
         uses: actions/github-script@v7
         with:
           script: |
-            const username = context.actor;
+            const today = new Date().toISOString().split('T')[0];
+            const username = 'amitsaxena9225';
 
-            // TODAY in UTC (GitHub search uses UTC)
-            const today = new Date().toISOString().split("T")[0];
-
-            const result = await github.search.issuesAndPullRequests({
-              q: `mentions:${username} is:open created:${today}`,
-              per_page: 100
+            const query = `is:issue is:open mentions:${username} created:${today}`;
+            const result = await github.rest.search.issuesAndPullRequests({
+              q: query
             });
 
-            const issues = result.data.items;
-
-            if (issues.length === 0) {
-              console.log("No issues created today");
+            if (result.data.items.length === 0) {
+              console.log("No issues found");
               return;
             }
 
             let body = `📌 **Daily Approval Summary – ${today}**\n\n`;
             body += `Comment **APPROVE-ALL** to approve all issues below:\n\n`;
 
-            for (const i of issues) {
-              body += `• #${i.number} – ${i.title}\n`;
+            for (const issue of result.data.items) {
+              body += `• #${issue.number} – ${issue.title}\n`;
             }
 
-            await github.issues.create({
+            await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Daily Approval Summary – ${today}`,
               body
             });
+			
+			
