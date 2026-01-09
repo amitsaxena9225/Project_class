@@ -1,0 +1,46 @@
+name: Daily Collect Tagged Issues
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # 8:30 AM IST
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Collect today's tagged issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().split('T')[0];
+            const username = 'YOUR_GITHUB_USERNAME';
+
+            const query = `is:issue is:open mentions:${username} created:${today}`;
+            const result = await github.rest.search.issuesAndPullRequests({
+              q: query
+            });
+
+            if (result.data.items.length === 0) {
+              console.log("No issues found");
+              return;
+            }
+
+            let body = `📌 **Daily Approval Summary – ${today}**\n\n`;
+            body += `Comment **APPROVE-ALL** to approve all issues below:\n\n`;
+
+            for (const issue of result.data.items) {
+              body += `• #${issue.number} – ${issue.title}\n`;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Daily Approval Summary – ${today}`,
+              body
+            });
