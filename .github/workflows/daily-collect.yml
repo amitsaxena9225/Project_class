@@ -1,8 +1,8 @@
-name: Daily Collect Tagged Issues
+name: Daily Approval Summary (Today)
 
 on:
   schedule:
-    - cron: "0 3 * * *"   # 8:30 AM IST
+    - cron: "30 3 * * *"   # 9:00 AM IST (03:30 UTC)
   workflow_dispatch:
 
 permissions:
@@ -13,34 +13,41 @@ jobs:
   collect:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v7
+      - name: Create today’s approval summary
+        uses: actions/github-script@v7
         with:
           script: |
-            const username = 'amitsaxena9225';
+            const username = context.actor;
 
-            const start = new Date();
-            start.setUTCHours(0,0,0,0);
-            const end = new Date();
-            end.setUTCHours(23,59,59,999);
+            // Start of TODAY in UTC (00:00 UTC)
+            const todayUTC = new Date();
+            todayUTC.setUTCHours(0, 0, 0, 0);
+            const since = todayUTC.toISOString();
 
-            const query = `is:issue is:open mentions:${username} created:${start.toISOString()}..${end.toISOString()}`;
-            const result = await github.rest.search.issuesAndPullRequests({ q: query });
+            const result = await github.search.issuesAndPullRequests({
+              q: `mentions:${username} is:open created:>=${since}`,
+              per_page: 100
+            });
 
-            if (!result.data.items.length) {
-              console.log("No issues found");
+            const issues = result.data.items;
+
+            if (issues.length === 0) {
+              console.log("No tickets created today");
               return;
             }
 
-            let body = `📌 **Daily Approval Summary**\n\n`;
-            body += `Comment **APPROVE-ALL** to approve all issues below:\n\n`;
+            const todayStr = since.split("T")[0];
 
-            for (const issue of result.data.items) {
-              body += `• #${issue.number} – ${issue.title}\n`;
+            let body = `📌 **Daily Approval Summary – ${todayStr} (UTC)**\n\n`;
+            body += `Comment **APPROVE-ALL** to approve all TODAY’s issues below:\n\n`;
+
+            for (const i of issues) {
+              body += `• #${i.number} – ${i.title}\n`;
             }
 
-            await github.rest.issues.create({
+            await github.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `Daily Approval Summary – ${new Date().toISOString().split('T')[0]}`,
+              title: `Daily Approval Summary – ${todayStr}`,
               body
             });
