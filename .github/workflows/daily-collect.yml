@@ -1,8 +1,8 @@
-name: Daily Collect Tagged Issues
+# name: Daily Approval Summary
 
 on:
   schedule:
-    - cron: "* * * * *"   # 8:30 AM IST
+    - cron: "30 3 * * *"   # 9:00 AM IST (03:30 UTC)
   workflow_dispatch:
 
 permissions:
@@ -12,33 +12,36 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Collect today's tagged issues
+      - name: Create daily approval summary
         uses: actions/github-script@v7
         with:
           script: |
-            const today = new Date().toISOString().split('T')[0];
-            const username = 'amitsaxena9225';
+            const username = context.actor;
 
-            const query = `is:issue is:open mentions:${username} created:${today}`;
-            const result = await github.rest.search.issuesAndPullRequests({
-              q: query
+            // TODAY in UTC (GitHub search uses UTC)
+            const today = new Date().toISOString().split("T")[0];
+
+            const result = await github.search.issuesAndPullRequests({
+              q: `mentions:${username} is:open created:${today}`,
+              per_page: 100
             });
 
-            if (result.data.items.length === 0) {
-              console.log("No issues found");
+            const issues = result.data.items;
+
+            if (issues.length === 0) {
+              console.log("No issues created today");
               return;
             }
 
             let body = `📌 **Daily Approval Summary – ${today}**\n\n`;
             body += `Comment **APPROVE-ALL** to approve all issues below:\n\n`;
 
-            for (const issue of result.data.items) {
-              body += `• #${issue.number} – ${issue.title}\n`;
+            for (const i of issues) {
+              body += `• #${i.number} – ${i.title}\n`;
             }
 
-            await github.rest.issues.create({
+            await github.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Daily Approval Summary – ${today}`,
