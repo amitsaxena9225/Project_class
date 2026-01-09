@@ -1,0 +1,47 @@
+name: My Tagged Issues Summary
+
+on:
+  schedule:
+    - cron: "0 10 * * *"   # Daily at 10 AM UTC
+  workflow_dispatch:
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check issues mentioning me
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USERNAME: amitsaxena9225          # your GitHub username
+          REPO: amitsaxena9225/Project_class
+          TRACKING_ISSUE: 1                 # <-- change to your issue number
+        run: |
+          python <<EOF
+          import requests, os
+
+          user = os.environ["USERNAME"]
+          repo = os.environ["REPO"]
+          issue_no = os.environ["TRACKING_ISSUE"]
+          token = os.environ["GITHUB_TOKEN"]
+
+          headers = {"Authorization": f"token {token}"}
+
+          search_url = (
+              f"https://api.github.com/search/issues"
+              f"?q=mentions:{user}+repo:{repo}+state:open"
+          )
+
+          issues = requests.get(search_url, headers=headers).json().get("items", [])
+
+          if not issues:
+              body = "✅ **All my tickets are approved. No pending issues 🎉**"
+          else:
+              lines = [f"🔔 **Pending issues mentioning @{user}: ({len(issues)})**"]
+              for i in issues:
+                  lines.append(f"- #{i['number']} {i['title']} — {i['html_url']}")
+              body = "\n".join(lines)
+
+          comment_url = f"https://api.github.com/repos/{repo}/issues/{issue_no}/comments"
+          requests.post(comment_url, headers=headers, json={"body": body})
+          EOF
