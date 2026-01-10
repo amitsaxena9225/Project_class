@@ -15,32 +15,46 @@ jobs:
       - name: Process APPROVE-ALL
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.CROSS_REPO_TOKEN }}
           script: |
             const APPROVER = "amitsaxena9225";
 
-            const commentBody = context.payload.comment.body.trim();
+            const commentBody = context.payload.comment.body.toUpperCase().trim();
             const commenter   = context.payload.comment.user.login;
             const issue       = context.payload.issue;
 
-            // 🔐 SECURITY CHECKS
+            console.log(`Comment: ${commentBody}`);
+            console.log(`Commenter: ${commenter}`);
+
+            /************ SECURITY ************/
             if (commentBody !== "APPROVE-ALL") return;
             if (commenter !== APPROVER) return;
-            if (!issue.labels.some(l => l.name === "daily-summary")) return;
 
-            /**************** PARSE ISSUES ****************/
-            const items = issue.body
-              .split("\n")
-              .filter(l => l.startsWith("• "))
-              .map(l => {
-                const match = l.match(/• (.+?)\/(.+?)#(\d+)/);
-                return {
-                  owner: match[1],
-                  repo: match[2],
-                  number: parseInt(match[3])
-                };
+            /************ PARSE SUMMARY ************/
+            const lines = issue.body.split("\n").filter(l => l.startsWith("• "));
+            if (lines.length === 0) {
+              console.log("No issue lines found");
+              return;
+            }
+
+            const items = [];
+            for (const line of lines) {
+              const match = line.match(/• (.+?)\/(.+?)#(\d+)/);
+              if (!match) continue;
+
+              items.push({
+                owner: match[1],
+                repo: match[2],
+                number: parseInt(match[3])
               });
+            }
 
-            /**************** APPROVE EACH ISSUE ****************/
+            if (items.length === 0) {
+              console.log("No valid issues parsed");
+              return;
+            }
+
+            /************ APPROVE EACH ISSUE ************/
             for (const i of items) {
               await github.rest.issues.createComment({
                 owner: i.owner,
@@ -57,12 +71,12 @@ jobs:
               });
             }
 
-            /**************** CLOSE SUMMARY ****************/
+            /************ CLOSE SUMMARY ************/
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: "✅ **All tickets across all repositories approved. Closing summary.**"
+              body: "✅ **All tickets across all repositories approved.**"
             });
 
             await github.rest.issues.update({
