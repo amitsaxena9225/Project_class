@@ -24,7 +24,7 @@ jobs:
             // 👇 TARGET REPOSITORIES
             const REPOS = [
               { owner: "amitsaxena9225", repo: "Amit" },
-              { owner: "amitsaxena9225", repo: "Python_Git_demo_API" },
+              { owner: "amitsaxena9225", repo: "Python_Git_demo" },
               { owner: "amitsaxena9225", repo: "Push_my_code_to_git" }
             ];
 
