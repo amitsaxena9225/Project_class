@@ -2,7 +2,7 @@ name: Daily Approval Summary (Last 24 Hours)
 
 on:
   schedule:
-    - cron: "* * * * *"   # 9:00 AM IST (03:30 UTC)
+    - cron: "* * * * *"   # every minute for testing
   workflow_dispatch:
 
 permissions:
@@ -18,26 +18,17 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const APPROVER = "amitsaxena9225"; // 👈 GitHub username
+            const APPROVER = "amitsaxena9225";
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            // ---- LAST 24 HOURS (UTC) ----
+            // ---- LAST 24 HOURS ----
             const now = new Date();
-            const sinceUTC = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-              .toISOString();
+            const sinceUTC = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-            // ---- Prevent duplicate summary ----
-            const existing = await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} in:title "Daily Approval Summary – Last 24 Hours"`,
-            });
+            const dateLabel = now.toISOString().split("T")[0];
 
-            if (existing.data.items.length > 0) {
-              console.log("Summary already exists. Skipping.");
-              return;
-            }
-
-            // ---- Fetch tickets from last 24 hours ----
+            // ---- Fetch tickets ----
             const result = await github.rest.search.issuesAndPullRequests({
               q: `mentions:${APPROVER} is:open created:>=${sinceUTC}`,
               per_page: 100
@@ -46,14 +37,13 @@ jobs:
             const issues = result.data.items;
 
             if (issues.length === 0) {
-              console.log("No tickets created in last 24 hours.");
+              console.log("No tickets in last 24 hours.");
               return;
             }
 
-            // ---- Build summary body ----
             let body =
               `📌 **Daily Approval Summary – Last 24 Hours**\n\n` +
-              `👤 @${APPROVER}, please review and approve the following tickets.\n\n` +
+              `👤 @${APPROVER}, please review and approve.\n\n` +
               `🕒 From: ${sinceUTC}\n` +
               `🕒 To: ${now.toISOString()}\n\n` +
               `👉 Comment **APPROVE-ALL** to approve all tickets below:\n\n`;
@@ -62,11 +52,12 @@ jobs:
               body += `• #${i.number} – ${i.title}\n`;
             }
 
-            // ---- Create summary issue ----
+            // ---- Create issue (NO SKIP LOGIC) ----
             await github.rest.issues.create({
               owner,
               repo,
-              title: "Daily Approval Summary – Last 24 Hours",
+              title: `Daily Approval Summary – ${dateLabel}`,
               body,
-              labels: ["daily-summary"]
+              labels: ["daily-summary"],
+              assignees: [APPROVER]   // 🔥 guarantees notification
             });
