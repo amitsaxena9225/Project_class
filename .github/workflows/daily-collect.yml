@@ -25,7 +25,7 @@ jobs:
             const REPOS = [
               { owner: "amitsaxena9225", repo: "Python_Git_demo" },
               { owner: "amitsaxena9225", repo: "Python_Git_demo_API" },
-              { owner: "amitsaxena9225", repo: "Python_Git_demo_UI" }
+              { owner: "amitsaxena9225", repo: "Python_Git_demo" }
             ];
 
             const summaryOwner = context.repo.owner;
