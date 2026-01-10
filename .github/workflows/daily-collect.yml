@@ -17,20 +17,20 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const APPROVER = "amitsaxena9225"; // 🔴 CHANGE IF NEEDED
+            const APPROVER = "amitsaxena9225"; // 👈 your GitHub username
 
             // ---- IST start of today → UTC ----
+            const istOffset = 330; // minutes
             const now = new Date();
-            const istOffsetMinutes = 330; // IST
-            const istNow = new Date(now.getTime() + istOffsetMinutes * 60000);
+            const istNow = new Date(now.getTime() + istOffset * 60000);
             istNow.setHours(0, 0, 0, 0);
 
-            const sinceUTC = new Date(istNow.getTime() - istOffsetMinutes * 60000)
+            const sinceUTC = new Date(istNow.getTime() - istOffset * 60000)
               .toISOString();
 
             const todayStr = istNow.toISOString().split("T")[0];
 
-            // ---- Check if summary already exists ----
+            // ---- Prevent duplicate summary ----
             const existing = await github.rest.search.issuesAndPullRequests({
               q: `repo:${context.repo.owner}/${context.repo.repo} 
                   in:title "Daily Approval Summary – ${todayStr}"`,
@@ -41,7 +41,7 @@ jobs:
               return;
             }
 
-            // ---- Fetch today's issues mentioning you ----
+            // ---- Fetch today's issues ----
             const result = await github.rest.search.issuesAndPullRequests({
               q: `mentions:${APPROVER} is:open created:>=${sinceUTC}`,
               per_page: 100
@@ -50,12 +50,12 @@ jobs:
             const issues = result.data.items;
 
             if (issues.length === 0) {
-              console.log("No tickets created today");
+              console.log("No tickets created today.");
               return;
             }
 
             let body = `📌 **Daily Approval Summary – ${todayStr} (IST)**\n\n`;
-            body += `Comment **APPROVE-ALL** to approve all TODAY’s issues below:\n\n`;
+            body += `Comment **APPROVE-ALL** to approve all tickets below:\n\n`;
 
             for (const i of issues) {
               body += `• #${i.number} – ${i.title}\n`;
