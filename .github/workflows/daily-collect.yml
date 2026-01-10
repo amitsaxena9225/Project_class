@@ -2,12 +2,12 @@ name: Daily Approval Summary (Multi Repo)
 
 on:
   schedule:
-    - cron: "* * * * *"   # 8:30 AM IST
+    - cron: "0 3 * * *"   # 8:30 AM IST
   workflow_dispatch:
 
 permissions:
-  issues: write
   contents: read
+  issues: write
 
 jobs:
   collect:
@@ -17,30 +17,29 @@ jobs:
       - name: Create approval summary
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.CROSS_REPO_TOKEN }}
           script: |
-            /**************** CONFIG ****************/
+            /************ CONFIG ************/
             const APPROVER = "amitsaxena9225";
 
-            // 👇 TARGET REPOSITORIES
             const REPOS = [
-              { owner: "amitsaxena9225", repo: "Amit" },
               { owner: "amitsaxena9225", repo: "Python_Git_demo" },
-              { owner: "amitsaxena9225", repo: "Push_my_code_to_git" }
+              { owner: "amitsaxena9225", repo: "Python_Git_demo_API" },
+              { owner: "amitsaxena9225", repo: "Python_Git_demo_UI" }
             ];
 
-            // Control repo (summary issue created here)
             const summaryOwner = context.repo.owner;
             const summaryRepo  = context.repo.repo;
 
-            /**************** TODAY (UTC) ****************/
             const today = new Date().toISOString().split("T")[0];
-
             let allIssues = [];
 
-            /**************** COLLECT ISSUES ****************/
+            /************ COLLECT ISSUES ************/
             for (const r of REPOS) {
+              console.log(`Searching ${r.owner}/${r.repo}`);
+
               const result = await github.rest.search.issuesAndPullRequests({
-                q: `mentions:${APPROVER} is:issue is:open created:${today} repo:${r.owner}/${r.repo}`,
+                q: `is:issue is:open created:${today} repo:${r.owner}/${r.repo}`,
                 per_page: 100
               });
 
@@ -55,21 +54,21 @@ jobs:
             }
 
             if (allIssues.length === 0) {
-              console.log("No tickets found today.");
+              console.log("No tickets today");
               return;
             }
 
-            /**************** BUILD SUMMARY ****************/
+            /************ BUILD SUMMARY ************/
             let body =
               `📌 **Daily Approval Summary – ${today}**\n\n` +
               `👤 **Approver:** @${APPROVER}\n\n` +
-              `👉 Comment **APPROVE-ALL** on THIS issue to approve ALL tickets below:\n\n`;
+              `👉 Comment **APPROVE-ALL** on THIS issue to approve ALL tickets:\n\n`;
 
             for (const i of allIssues) {
               body += `• ${i.owner}/${i.repo}#${i.number} – ${i.title}\n`;
             }
 
-            /**************** CREATE SUMMARY ISSUE ****************/
+            /************ CREATE SUMMARY ISSUE ************/
             await github.rest.issues.create({
               owner: summaryOwner,
               repo: summaryRepo,
