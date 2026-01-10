@@ -1,4 +1,4 @@
-name: Approve All Issues
+name: Approve All Tickets
 
 on:
   issue_comment:
@@ -6,33 +6,72 @@ on:
 
 permissions:
   issues: write
+  contents: read
 
 jobs:
   approve:
-    if: contains(github.event.comment.body, 'APPROVE-ALL')
     runs-on: ubuntu-latest
-
+    if: contains(github.event.comment.body, 'APPROVE-ALL')
     steps:
-      - name: Approve all listed issues
+      - name: Approve all tickets in summary
         uses: actions/github-script@v7
         with:
           script: |
-            const commenter = context.payload.comment.user.login;
-            const allowedUser = 'amitsaxena9225';
+            const approver = context.payload.comment.user.login;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
 
-            if (commenter !== allowedUser) {
-              console.log("Unauthorized user");
+            const summaryIssue = context.payload.issue;
+
+            // Only allow from summary issue
+            if (!summaryIssue.labels.some(l => l.name === "daily-summary")) {
+              console.log("Not a daily summary issue. Ignored.");
               return;
             }
 
-            const summaryBody = context.payload.issue.body;
-            const issueNumbers = [...summaryBody.matchAll(/#(\d+)/g)].map(m => m[1]);
+            // Read summary issue body
+            const body = summaryIssue.body;
 
-            for (const number of issueNumbers) {
+            // Extract issue numbers from summary
+            const issueNumbers = [...body.matchAll(/#(\d+)/g)].map(m => Number(m[1]));
+
+            if (issueNumbers.length === 0) {
+              console.log("No tickets found.");
+              return;
+            }
+
+            for (const issue_number of issueNumbers) {
+              // Prevent double approval
+              const comments = await github.rest.issues.listComments({
+                owner,
+                repo,
+                issue_number,
+              });
+
+              const alreadyApproved = comments.data.some(c =>
+                c.body.includes("Approved by @")
+              );
+
+              if (alreadyApproved) continue;
+
               await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: number,
-                body: 'Approved ✅'
+                owner,
+                repo,
+                issue_number,
+                body: `✅ **Approved by @${approver}**\n📅 ${new Date().toISOString().split("T")[0]}`
+              });
+
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels: ["approved"]
               });
             }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: summaryIssue.number,
+              body: `✅ Approved ${issueNumbers.length} tickets by @${approver}`
+            });
