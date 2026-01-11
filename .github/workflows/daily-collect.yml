@@ -2,7 +2,7 @@ name: Daily Approval Summary (Multi Repo)
 
 on:
   schedule:
-    - cron: "* * * * *"   # 8:30 AM IST
+    - cron: "0 3 * * *"   # 8:30 AM IST
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,8 @@ jobs:
         with:
           github-token: ${{ secrets.CROSS_REPO_TOKEN }}
           script: |
-            const APPROVER = "amitsaxena9225"; // 👈 boss GitHub username
+            /************ CONFIG ************/
+            const APPROVER = "amitsaxena9225@gmai.com"; // Boss GitHub username
 
             const REPOS = [
               { owner: "amitsaxena9225", repo: "Python_Git_demo" },
@@ -33,7 +34,10 @@ jobs:
             const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
             let allIssues = [];
 
+            /************ COLLECT ISSUES ************/
             for (const r of REPOS) {
+              console.log(`Searching ${r.owner}/${r.repo}`);
+
               const result = await github.rest.search.issuesAndPullRequests({
                 q: `is:issue is:open created:>=${since} repo:${r.owner}/${r.repo}`,
                 per_page: 100
@@ -54,6 +58,7 @@ jobs:
               return;
             }
 
+            /************ BUILD SUMMARY ************/
             let body =
               `📌 **Daily Approval Summary (Last 24 Hours)**\n\n` +
               `👤 **Approver:** @${APPROVER}\n\n` +
@@ -63,13 +68,14 @@ jobs:
               body += `• ${i.owner}/${i.repo}#${i.number} – ${i.title}\n`;
             }
 
-            body += `\n@${APPROVER} 🚨 Approval required`;
+            body += `\n🚨 @${APPROVER} — Approval required`;
 
+            /************ CREATE SUMMARY ISSUE ************/
             await github.rest.issues.create({
               owner: summaryOwner,
               repo: summaryRepo,
               title: `Daily Approval Summary – ${new Date().toISOString().split("T")[0]}`,
               body,
-              assignees: [APPROVER],
+              assignees: [APPROVER],   // Email trigger
               labels: ["daily-summary", "approval-required"]
             });
