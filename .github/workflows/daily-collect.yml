@@ -75,7 +75,7 @@ jobs:
             await github.rest.issues.create({
               owner: summaryOwner,
               repo: summaryRepo,
-              title: `Daily Approval Summary – ${new Date().toISOString().split("T")[0]}`,
+              title: `Daily Approval Summary – ${new Date().toISOString()}`,
               body,
               assignees: [APPROVER],   // Email trigger
               labels: ["daily-summary", "approval-required"]
