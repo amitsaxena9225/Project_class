@@ -68,7 +68,8 @@ jobs:
               body += `• ${i.owner}/${i.repo}#${i.number} – ${i.title}\n`;
             }
 
-            body += `\n🚨 @${APPROVER} — Approval required`;
+            /* 🔔 ADD THIS LINE HERE (IMPORTANT) */
+            body += `\n\n🚨 @amitsaxena9225 — Approval required today`;
 
             /************ CREATE SUMMARY ISSUE ************/
             await github.rest.issues.create({
