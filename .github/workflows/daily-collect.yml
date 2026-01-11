@@ -2,7 +2,7 @@ name: Daily Approval Summary (Multi Repo)
 
 on:
   schedule:
-    - cron: "0 3 * * *"   # 8:30 AM IST
+    - cron: "* * * * *"   # 8:30 AM IST
   workflow_dispatch:
 
 permissions:
