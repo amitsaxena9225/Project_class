@@ -17,38 +17,61 @@ jobs:
         with:
           github-token: ${{ secrets.CROSS_REPO_TOKEN }}
           script: |
-            /************ CONFIG ************/
-            const APPROVER = "amitsaxena9225;
+            // ===== CONFIG =====
+            const APPROVER = "amitsaxena9225"; // boss GitHub username
+
+            // ===== DEBUG LOGS =====
+            console.log("Approve workflow triggered");
 
             const commentBody = context.payload.comment.body.trim().toUpperCase();
-            const commenter  = context.payload.comment.user.login;
-            const issue      = context.payload.issue;
+            const commenter = context.payload.comment.user.login;
+            const issue = context.payload.issue;
 
-            console.log(`Comment: ${commentBody}`);
-            console.log(`Commenter: ${commenter}`);
+            console.log("Comment body:", commentBody);
+            console.log("Commenter:", commenter);
 
-            /************ SECURITY ************/
-            if (commentBody !== "APPROVE-ALL") return;
-            if (commenter !== APPROVER) return;
+            // ===== SECURITY CHECKS =====
+            if (commentBody !== "APPROVE-ALL") {
+              console.log("Not an APPROVE-ALL comment");
+              return;
+            }
 
-            /************ PARSE SUMMARY ************/
-            const lines = issue.body.split("\n").filter(l => l.startsWith("• "));
-            if (!lines.length) return;
+            if (commenter !== APPROVER) {
+              console.log("Commenter not authorized");
+              return;
+            }
 
-            /************ PROCESS EACH ISSUE ************/
+            // ===== PARSE SUMMARY ISSUE =====
+            const lines = issue.body
+              .split("\n")
+              .filter(line => line.startsWith("• "));
+
+            console.log("Parsed lines:", lines);
+
+            if (lines.length === 0) {
+              console.log("No issues found in summary");
+              return;
+            }
+
+            // ===== PROCESS EACH ISSUE =====
             for (const line of lines) {
-              const match = line.match(/• (.+?)\/(.+?)#(\d+)/);
-              if (!match) continue;
+              const match = line.match(/• ([^/]+)\/([^#]+)#(\d+)/);
+              if (!match) {
+                console.log("Line did not match:", line);
+                continue;
+              }
 
               const owner = match[1];
-              const repo  = match[2];
+              const repo = match[2];
               const number = Number(match[3]);
+
+              console.log(`Approving ${owner}/${repo}#${number}`);
 
               await github.rest.issues.createComment({
                 owner,
                 repo,
                 issue_number: number,
-                body: "✅ Approved by amitsaxena9225 via **APPROVE-ALL**"
+                body: "Approved via APPROVE-ALL"
               });
 
               await github.rest.issues.addLabels({
@@ -59,12 +82,12 @@ jobs:
               });
             }
 
-            /************ CLOSE SUMMARY ************/
+            // ===== CLOSE SUMMARY ISSUE =====
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: "✅ **All tickets across all repositories have been approved.**"
+              body: "All tickets approved successfully."
             });
 
             await github.rest.issues.update({
