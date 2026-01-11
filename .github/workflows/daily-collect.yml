@@ -19,7 +19,7 @@ jobs:
         with:
           github-token: ${{ secrets.CROSS_REPO_TOKEN }}
           script: |
-            const APPROVER = "XYZ"; // 👈 boss GitHub username
+            const APPROVER = "amitsaxena9225"; // 👈 boss GitHub username
 
             const REPOS = [
               { owner: "amitsaxena9225", repo: "Python_Git_demo" },
