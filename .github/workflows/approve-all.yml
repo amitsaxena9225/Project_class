@@ -17,44 +17,54 @@ jobs:
         with:
           github-token: ${{ secrets.CROSS_REPO_TOKEN }}
           script: |
+            /************ CONFIG ************/
             const APPROVER = "amitsaxena9225@gmail.com";
 
-            const comment = context.payload.comment.body.trim().toUpperCase();
-            const commenter = context.payload.comment.user.login;
-            const issue = context.payload.issue;
+            const commentBody = context.payload.comment.body.trim().toUpperCase();
+            const commenter  = context.payload.comment.user.login;
+            const issue      = context.payload.issue;
 
-            if (comment !== "APPROVE-ALL") return;
+            console.log(`Comment: ${commentBody}`);
+            console.log(`Commenter: ${commenter}`);
+
+            /************ SECURITY ************/
+            if (commentBody !== "APPROVE-ALL") return;
             if (commenter !== APPROVER) return;
 
+            /************ PARSE SUMMARY ************/
             const lines = issue.body.split("\n").filter(l => l.startsWith("• "));
             if (!lines.length) return;
 
+            /************ PROCESS EACH ISSUE ************/
             for (const line of lines) {
               const match = line.match(/• (.+?)\/(.+?)#(\d+)/);
               if (!match) continue;
 
-              const [_, owner, repo, number] = match;
+              const owner = match[1];
+              const repo  = match[2];
+              const number = Number(match[3]);
 
               await github.rest.issues.createComment({
                 owner,
                 repo,
-                issue_number: Number(number),
-                body: "✅ Approved by amitsaxena9225@gmail.com via **APPROVE-ALL**"
+                issue_number: number,
+                body: "✅ Approved by amitsaxena9225 via **APPROVE-ALL**"
               });
 
               await github.rest.issues.addLabels({
                 owner,
                 repo,
-                issue_number: Number(number),
+                issue_number: number,
                 labels: ["approved"]
               });
             }
 
+            /************ CLOSE SUMMARY ************/
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: "✅ **All tickets approved successfully.**"
+              body: "✅ **All tickets across all repositories have been approved.**"
             });
 
             await github.rest.issues.update({
