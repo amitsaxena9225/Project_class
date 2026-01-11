@@ -18,7 +18,7 @@ jobs:
           github-token: ${{ secrets.CROSS_REPO_TOKEN }}
           script: |
             /************ CONFIG ************/
-            const APPROVER = "amitsaxena9225@gmail.com";
+            const APPROVER = "amitsaxena9225;
 
             const commentBody = context.payload.comment.body.trim().toUpperCase();
             const commenter  = context.payload.comment.user.login;
